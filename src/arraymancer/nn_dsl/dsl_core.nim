@@ -198,8 +198,27 @@ func createLayerInfo(layers: NimNode): seq[LayerInfo] =
   #     debugEcho treeRepr arg
   # debugEcho "<KKSKADOSOIADHSID"
 
-func createModelType(layerInfos: seq[LayerInfo]): NimNode =
-  result = newNimNode(nnkStmtList)
+func createModelType(layerInfos: seq[LayerInfo], modelName: NimNode): NimNode =
+  var recList = newNimNode(nnkRecList)
+  for layerInfo in layerInfos:
+    doAssert layerInfo.name.kind == nnkIdent
+    doAssert layerInfo.typeName.kind == nnkIdent
+    recList.add newIdentDefs(layerInfo.name, layerInfo.typeName)
+  
+  doAssert modelName.kind == nnkIdent
+  result = newNimNode(nnkStmtList).add(
+    newNimNode(nnkTypeSection).add(
+      newNimNode(nnkTypeDef).add(
+        modelName,
+        newEmptyNode(),
+        newNimNode(nnkObjectTy).add(
+          newEmptyNode(),
+          newEmptyNode(),
+          recList
+        )
+      )
+    )
+  )
   
 
 macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
@@ -256,10 +275,12 @@ macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
 
 
   # 1. create layer info
-  let layerInfo = sections.layers.createLayerInfo()
+  let layerInfos = sections.layers.createLayerInfo()
 
   # 2. create model type
+  let modelType = createModelType(layerInfos, model_name)
 
+  # 3. create init proc
 
   #[-----------------------------------------------------]#
 

@@ -49,32 +49,48 @@ network ctx, DemoNet:
     x.cv1.relu.mp1.cv2.relu.mp2.fl.hidden.relu.hidden2.relu.classifier
 
 dumptree:
-  network ctx, DemoNet:
-    layers:
-      x:          Input([1, 28, 28])
-      cv1:        Conv2D(x.out_shape, out_channels = 20, 5, 5)
-      mp1:        MaxPool2D(cv1.out_shape, (2,2), (0,0), (2,2))
-      cv2:        Conv2D(mp1.out_shape, 50, 5, 5)
-      mp2:        MaxPool2D(cv2.out_shape, (2,2), (0,0), (2,2))
-      fl:         Flatten(mp2.out_shape)
-      hidden:     Linear(fl.out_shape, 500)
-      hidden2:    Linear(hidden.out_shape, 200)
-      classifier: Linear(hidden2.out_shape, 10)
-      classifier2: Linear()
-    forward x:
-      x.cv1.relu.mp1.cv2.relu.mp2.fl.hidden.relu.hidden2.relu.classifier
+  # network ctx, DemoNet:
+  #   layers:
+  #     x:          Input([1, 28, 28])
+  #     cv1:        Conv2D(x.out_shape, out_channels = 20, 5, 5)
+  #     mp1:        MaxPool2D(cv1.out_shape, (2,2), (0,0), (2,2))
+  #     cv2:        Conv2D(mp1.out_shape, 50, 5, 5)
+  #     mp2:        MaxPool2D(cv2.out_shape, (2,2), (0,0), (2,2))
+  #     fl:         Flatten(mp2.out_shape)
+  #     hidden:     Linear(fl.out_shape, 500)
+  #     hidden2:    Linear(hidden.out_shape, 200)
+  #     classifier: Linear(hidden2.out_shape, 10)
+  #     classifier2: Linear()
+  #   forward x:
+  #     x.cv1.relu.mp1.cv2.relu.mp2.fl.hidden.relu.hidden2.relu.classifier
 
-dumptree:
-  type
-    DemoNet = object
-      x: Input
-      cv1: Conv2DLayer
-      mp1: MaxPool2D
-      cv2: Conv2DLayer
-      mp2: MaxPool2D
-      fl: Flatten
-      hidden: LinearLayer
-      classifier: LinearLayer
+  # type DemoNet = object
+  #   x: Input
+  #   cv1: Conv2DLayer
+  #   mp1: MaxPool2D
+  #   cv2: Conv2DLayer
+  #   mp2: MaxPool2D
+  #   fl: Flatten
+  #   hidden: LinearLayer
+  #   classifier: LinearLayer
+  proc init(ctx: Context[Tensor[float32]], model_type: typedesc[DemoNet]): DemoNet =
+    template x = result.x
+    template cv1 = result.cv1
+    template mp1 = result.mp1
+    template cv2 = result.cv2
+    template mp2 = result.mp2
+    template fl = result.fl
+    template hidden = result.hidden
+    template classifier = result.classifier
+
+    x = ctx.init(Input2, [1, 28, 28])
+    cv1 = ctx.init(Conv2DLayer2, x.out_shape, 20, 5, 5)
+    mp1 = ctx.init(MaxPool2DLayer2, cv1.out_shape, (2,2), (0,0), (2,2))
+    cv2 = ctx.init(Conv2DLayer2, mp1.out_shape, 50, 5, 5)
+    mp2 = ctx.init(MaxPool2DLayer2, cv2.out_shape, (2,2), (0,0), (2,2))
+    fl = ctx.init(Flatten2, mp2.out_shape)
+    hidden = ctx.init(LinearLayer2, fl.out_shape, 500)
+    classifier = ctx.init(LinearLayer2, 500, 10)
 
 let model = ctx.init(DemoNet)
 
