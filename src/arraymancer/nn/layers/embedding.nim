@@ -99,3 +99,25 @@ proc embedding*[TT; Idx: byte or char or SomeInteger](
       input_vocab_id, weight,
       padding_idx, scale_grad_by_freq
     )
+
+# ############################################################
+#
+#                  Graph recurrent unit layer type for nn_dsl TODO: what is nn_dsl?
+#
+# ############################################################
+
+type # TODO: ask if it makes sense to generalize Tensor[T] to AnyTensor[T], or TT
+  EmbeddedLayer2*[TT] = object
+    weight*: Variable[TT]
+
+proc init*[T](
+  ctx: Context[Tensor[T]],
+  layer_type: typedesc[EmbeddedLayer2[T]],
+  whatever: object
+): EmbeddedLayer2[T] =
+  #TODO I am not sure, what's supposed to be done here
+  discard
+
+proc forward*[T](self: EmbeddedLayer2[T], input: Variable[Tensor[T]]): Variable[Tensor[T]] =
+  #TODO I am not sure, what's supposed to be done here
+  discard

@@ -16,6 +16,7 @@ import  ../../private/sequninit,
         ../../tensor,
         ../../autograd,
         ../../nn_primitives,
+        ../init,
         sequtils
 
 type GRUGate*[TT]{.final.}= ref object of Gate[TT]
@@ -154,3 +155,27 @@ proc gru*[TT](
     result.gru_forward(input, hidden0, W3s0, W3sN, U3s, bW3s, bU3s)
   else:
     result.gru_inference(input, hidden0, W3s0, W3sN, U3s, bW3s, bU3s)
+
+# ############################################################
+#
+#                  Graph recurrent unit layer type for nn_dsl TODO: what is nn_dsl?
+#
+# ############################################################
+
+type # TODO: ask if it makes sense to generalize Tensor[T] to AnyTensor[T], or TT
+  GRULayer2*[T] = object
+    W3s0*, W3sN*: Variable[Tensor[T]]
+    U3s*: Variable[Tensor[T]]
+    bW3s*, bU3s*: Variable[Tensor[T]]
+
+proc init*[T](
+  ctx: Context[Tensor[T]],
+  layer_type: typedesc[GRULayer2[T]],
+  input_shape: varargs[int], hidden_size, stacked_layers: int
+): GRULayer2[T] =
+  #TODO I am not sure, what's supposed to be done here
+  discard
+
+proc forward*[T](self: GRULayer2[T], input: Variable[Tensor[T]]): Variable[Tensor[T]] =
+  #TODO I am not sure, what's supposed to be done here
+  discard

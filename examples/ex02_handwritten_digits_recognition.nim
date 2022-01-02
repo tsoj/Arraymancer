@@ -1,4 +1,5 @@
 import ../src/arraymancer, random
+import macros
 
 # This is an early minimum viable example of handwritten digits recognition.
 # It uses convolutional neural networks to achieve high accuracy.
@@ -42,9 +43,38 @@ network ctx, DemoNet:
     mp2:        MaxPool2D(cv2.out_shape, (2,2), (0,0), (2,2))
     fl:         Flatten(mp2.out_shape)
     hidden:     Linear(fl.out_shape, 500)
-    classifier: Linear(500, 10)
+    hidden2:    Linear(hidden.out_shape, 200)
+    classifier: Linear(hidden2.out_shape, 10)
   forward x:
-    x.cv1.relu.mp1.cv2.relu.mp2.fl.hidden.relu.classifier
+    x.cv1.relu.mp1.cv2.relu.mp2.fl.hidden.relu.hidden2.relu.classifier
+
+dumptree:
+  network ctx, DemoNet:
+    layers:
+      x:          Input([1, 28, 28])
+      cv1:        Conv2D(x.out_shape, out_channels = 20, 5, 5)
+      mp1:        MaxPool2D(cv1.out_shape, (2,2), (0,0), (2,2))
+      cv2:        Conv2D(mp1.out_shape, 50, 5, 5)
+      mp2:        MaxPool2D(cv2.out_shape, (2,2), (0,0), (2,2))
+      fl:         Flatten(mp2.out_shape)
+      hidden:     Linear(fl.out_shape, 500)
+      hidden2:    Linear(hidden.out_shape, 200)
+      classifier: Linear(hidden2.out_shape, 10)
+      classifier2: Linear()
+    forward x:
+      x.cv1.relu.mp1.cv2.relu.mp2.fl.hidden.relu.hidden2.relu.classifier
+
+dumptree:
+  type
+    DemoNet = object
+      x: Input
+      cv1: Conv2DLayer
+      mp1: MaxPool2D
+      cv2: Conv2DLayer
+      mp2: MaxPool2D
+      fl: Flatten
+      hidden: LinearLayer
+      classifier: LinearLayer
 
 let model = ctx.init(DemoNet)
 
@@ -67,7 +97,7 @@ for epoch in 0 ..< 5:
       # Print status every 200 batches
       echo "Epoch is: " & $epoch
       echo "Batch id: " & $batch_id
-      echo "Loss is:  " & $loss.value
+      echo "Loss is:  " & $loss.value[0]
 
     # Compute the gradient (i.e. contribution of each parameter to the loss)
     loss.backprop()
@@ -99,71 +129,179 @@ for epoch in 0 ..< 5:
 
 # Epoch is: 0
 # Batch id: 0
-# Loss is:  3.133937835693359
+# Loss is:  2.83383584022522
 # Epoch is: 0
 # Batch id: 200
-# Loss is:  0.3546932339668274
+# Loss is:  0.2911527752876282
 # Epoch is: 0
 # Batch id: 400
-# Loss is:  0.1979422867298126
+# Loss is:  0.1666509807109833
 # Epoch is: 0
 # Batch id: 600
-# Loss is:  0.1619873046875
+# Loss is:  0.2486120313405991
 # Epoch is: 0
 # Batch id: 800
-# Loss is:  0.1561944484710693
+# Loss is:  0.165436714887619
 # Epoch is: 0
 # Batch id: 1000
-# Loss is:  0.2481455355882645
+# Loss is:  0.210975781083107
 # Epoch is: 0
 # Batch id: 1200
-# Loss is:  0.1929974257946014
+# Loss is:  0.1667802333831787
 # Epoch is: 0
 # Batch id: 1400
-# Loss is:  0.09381495416164398
+# Loss is:  0.08688683807849884
 # Epoch is: 0
 # Batch id: 1600
-# Loss is:  0.08794669061899185
+# Loss is:  0.07058585435152054
 # Epoch is: 0
 # Batch id: 1800
-# Loss is:  0.2013712525367737
+# Loss is:  0.2075864225625992
 
 # Epoch #0 done. Testing accuracy
-# Accuracy: 97.18000000000001%
-# Loss:     0.09510207045823335
+# Accuracy: 96.70999999999998%
+# Loss:     0.1007537815719843
 
 
 # Epoch is: 1
 # Batch id: 0
-# Loss is:  0.05660493671894073
+# Loss is:  0.04121939837932587
 # Epoch is: 1
 # Batch id: 200
-# Loss is:  0.05254033207893372
+# Loss is:  0.02066932618618011
 # Epoch is: 1
 # Batch id: 400
-# Loss is:  0.09177093207836151
+# Loss is:  0.08200274407863617
 # Epoch is: 1
 # Batch id: 600
-# Loss is:  0.0544213205575943
+# Loss is:  0.05399921536445618
 # Epoch is: 1
 # Batch id: 800
-# Loss is:  0.03129085898399353
+# Loss is:  0.06251053512096405
 # Epoch is: 1
 # Batch id: 1000
-# Loss is:  0.1740589588880539
+# Loss is:  0.1627875566482544
 # Epoch is: 1
 # Batch id: 1200
-# Loss is:  0.1218579858541489
+# Loss is:  0.1231627687811852
 # Epoch is: 1
 # Batch id: 1400
-# Loss is:  0.04907236993312836
+# Loss is:  0.04727928340435028
 # Epoch is: 1
 # Batch id: 1600
-# Loss is:  0.04116201400756836
+# Loss is:  0.04230280220508575
 # Epoch is: 1
 # Batch id: 1800
-# Loss is:  0.1408360302448273
+# Loss is:  0.1406233310699463
 
 # Epoch #1 done. Testing accuracy
-# Accuracy: 98.00000000000001%
-# Loss:     0.06425597975030542
+# Accuracy: 97.76000000000001%
+# Loss:     0.06900692787021398
+
+
+# Epoch is: 2
+# Batch id: 0
+# Loss is:  0.01567600667476654
+# Epoch is: 2
+# Batch id: 200
+# Loss is:  0.01009216904640198
+# Epoch is: 2
+# Batch id: 400
+# Loss is:  0.07341829687356949
+# Epoch is: 2
+# Batch id: 600
+# Loss is:  0.02835254371166229
+# Epoch is: 2
+# Batch id: 800
+# Loss is:  0.03980693221092224
+# Epoch is: 2
+# Batch id: 1000
+# Loss is:  0.1551663875579834
+# Epoch is: 2
+# Batch id: 1200
+# Loss is:  0.1222885027527809
+# Epoch is: 2
+# Batch id: 1400
+# Loss is:  0.02436092495918274
+# Epoch is: 2
+# Batch id: 1600
+# Loss is:  0.0285358726978302
+# Epoch is: 2
+# Batch id: 1800
+# Loss is:  0.1016025543212891
+
+# Epoch #2 done. Testing accuracy
+# Accuracy: 98.11000000000001%
+# Loss:     0.05803158972412348
+
+
+# Epoch is: 3
+# Batch id: 0
+# Loss is:  0.01016336679458618
+# Epoch is: 3
+# Batch id: 200
+# Loss is:  0.008497849106788635
+# Epoch is: 3
+# Batch id: 400
+# Loss is:  0.06492133438587189
+# Epoch is: 3
+# Batch id: 600
+# Loss is:  0.01684235036373138
+# Epoch is: 3
+# Batch id: 800
+# Loss is:  0.03516259789466858
+# Epoch is: 3
+# Batch id: 1000
+# Loss is:  0.12979856133461
+# Epoch is: 3
+# Batch id: 1200
+# Loss is:  0.1137113943696022
+# Epoch is: 3
+# Batch id: 1400
+# Loss is:  0.01397424936294556
+# Epoch is: 3
+# Batch id: 1600
+# Loss is:  0.02437949180603027
+# Epoch is: 3
+# Batch id: 1800
+# Loss is:  0.07698698341846466
+
+# Epoch #3 done. Testing accuracy
+# Accuracy: 98.22999999999999%
+# Loss:     0.05075375782325864
+
+
+# Epoch is: 4
+# Batch id: 0
+# Loss is:  0.006512492895126343
+# Epoch is: 4
+# Batch id: 200
+# Loss is:  0.008149772882461548
+# Epoch is: 4
+# Batch id: 400
+# Loss is:  0.05767479538917542
+# Epoch is: 4
+# Batch id: 600
+# Loss is:  0.01081934571266174
+# Epoch is: 4
+# Batch id: 800
+# Loss is:  0.02772468328475952
+# Epoch is: 4
+# Batch id: 1000
+# Loss is:  0.1089183539152145
+# Epoch is: 4
+# Batch id: 1200
+# Loss is:  0.1075025796890259
+# Epoch is: 4
+# Batch id: 1400
+# Loss is:  0.009760886430740356
+# Epoch is: 4
+# Batch id: 1600
+# Loss is:  0.0264655202627182
+# Epoch is: 4
+# Batch id: 1800
+# Loss is:  0.06295807659626007
+
+# Epoch #4 done. Testing accuracy
+# Accuracy: 98.33999999999999%
+# Loss:     0.04616197692230344

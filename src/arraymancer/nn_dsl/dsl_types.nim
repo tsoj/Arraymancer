@@ -4,7 +4,8 @@
 
 import
   macros, tables, hashes,
-  ../autograd
+  ../autograd,
+  ../tensor
 
 type
   #################################################
@@ -83,3 +84,18 @@ type
 proc hash*(x: NimNode): Hash =
   assert x.kind == nnkIdent
   result = hash($x)
+
+type
+  Conv2D = object
+    weight*: Variable[Tensor[float32]]
+    bias*: Variable[Tensor[float32]]
+  GatedRecUnit = object
+    W3s0*, W3sN*: Variable[Tensor[float32]]
+    U3s*: Variable[Tensor[float32]]
+    bW3s*, bU3s*: Variable[Tensor[float32]]
+  Embedding= object
+    weight*: Variable[Tensor[float32]]
+  Input = object
+  MaxPool2D = object
+  Flatten = object
+ 

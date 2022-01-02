@@ -110,3 +110,58 @@ proc maxpool2d*[TT](input: Variable[TT],
     result.maxpool2D_forward(input, kernel, padding, stride)
   else:
     result.maxpool2D_inference(input, kernel, padding, stride)
+
+# ############################################################
+#
+#                  MaxPool2D layer type for nn_dsl TODO: what is nn_dsl?
+#
+# ############################################################
+
+type
+  MaxPool2DLayer2* = object
+    kernel: Size2D
+    padding: Size2D
+    stride: Size2D
+    in_shape: array[3, int]
+
+proc init*[T](
+  ctx: Context[Tensor[T]],
+  layer_type: typedesc[MaxPool2DLayer2],
+  in_shape: array[3, int],
+  kernel, padding, stride: Size2D
+): MaxPool2DLayer2 =
+  MaxPool2DLayer2(
+    kernel: kernel,
+    padding: padding,
+    stride: stride,
+    in_shape: in_shape
+  )
+
+proc forward*[T](self: MaxPool2DLayer2, input: Variable[Tensor[T]]): Variable[Tensor[T]] =
+  input.maxpool2D(
+    kernel = self.kernel,
+    padding = self.padding,
+    stride = self.stride
+  )
+
+proc out_shape*(self: MaxPool2DLayer2): Metadata =
+  template C: int = self.in_shape[0]
+  template H: int = self.in_shape[1]
+  template W: int = self.in_shape[2]
+
+  template kH: int = self.kernel.height
+  template kW: int = self.kernel.width
+  template pH: int = self.padding.height
+  template pW: int = self.padding.width
+  template sH: int = self.stride.height
+  template sW: int = self.stride.width
+
+  [
+    C,
+    (H + (2 * pH) - kH) div sH + 1,
+    (W + (2 * pW) - kW) div sW + 1
+  ].toMetadata
+
+proc in_shape*(self: MaxPool2DLayer2): Metadata =
+  self.in_shape.toMetadata
+

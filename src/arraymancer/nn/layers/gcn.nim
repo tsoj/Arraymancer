@@ -102,3 +102,26 @@ proc gcn*[TT](input, adjacency, weight: Variable[TT], bias: Variable[TT] = nil):
   # Caching for backprop
   if input.is_grad_needed or weight.is_grad_needed or (not bias.isNil and bias.is_grad_needed):
     result.gcn_cache(adjacency, input, weight, bias)
+
+
+# ############################################################
+#
+#                  Graph recurrent unit layer type for nn_dsl TODO: what is nn_dsl?
+#
+# ############################################################
+
+type # TODO: ask if it makes sense to generalize Tensor[T] to AnyTensor[T], or TT
+  GCULayer2*[T] = object
+    #TODO I am not sure, what's supposed to be done here
+
+proc init*[T](
+  ctx: Context[Tensor[T]],
+  layer_type: typedesc[GCULayer2[T]],
+  whatever: object
+): GCULayer2[T] =
+  #TODO I am not sure, what's supposed to be done here
+  discard
+
+proc forward*[T](self: GCULayer2[T], input: Variable[Tensor[T]]): Variable[Tensor[T]] =
+  #TODO I am not sure, what's supposed to be done here
+  discard

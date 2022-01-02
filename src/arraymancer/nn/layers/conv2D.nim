@@ -14,7 +14,8 @@
 
 import  ../../tensor,
         ../../autograd,
-        ../../nn_primitives
+        ../../nn_primitives,
+        ../init
 
 type Conv2DGate*[TT]{.final.} = ref object of Gate[TT]
   cached_input: Variable[TT]
@@ -125,3 +126,74 @@ proc conv2d*[TT]( input, weight: Variable[TT],
         input, weight, bias,
         padding, stride
       )
+
+# ############################################################
+#
+#                  Conv2D layer type for nn_dsl TODO: what is nn_dsl?
+#
+# ############################################################
+# TODO: in this module, or better somewhere else
+type # TODO: ask if it makes sense to generalize Tensor[T] to AnyTensor[T], or TT
+  Conv2DLayer2*[T] = object
+    weight*: Variable[Tensor[T]]
+    bias*: Variable[Tensor[T]]
+    padding: Size2D
+    stride: Size2D
+    in_shape: array[3, int]
+
+proc init*[T](
+  ctx: Context[Tensor[T]],
+  layer_type: typedesc[Conv2DLayer2[T]],
+  in_shape: array[3, int],
+  out_channels: int,
+  kernel_size: Size2D,
+  padding: Size2D = (0,0),
+  stride: Size2D = (1,1)
+): Conv2DLayer2[T] =
+
+  result.padding = padding
+  result.stride = stride
+  result.in_shape = in_shape
+
+  let in_channels = in_shape[0]
+  result.weight = ctx.variable(
+    kaiming_normal([out_channels, in_channels, kernel_size.height, kernel_size.width], T),
+    requires_grad = true
+  )
+
+  result.cv1.bias = ctx.variable(
+    zeros[T]([out_channels, 1, 1]),
+    requires_grad = true
+  )
+
+proc forward*[T](self: Conv2DLayer2[T], input: Variable[Tensor[T]]): Variable[Tensor[T]] =
+  assert input.value.shape == self.in_shape
+  input.conv2d(
+    weight = self.weight,
+    bias = self.bias,
+    padding = self.padding,
+    stride = self.stride
+  )
+
+proc out_shape*[T](self: Conv2DLayer2[T]): Metadata =
+  assert self.weight.value.shape.len == 3
+  template kH(): int = self.weight.value.shape[2]
+  template kW(): int = self.weight.value.shape[3]
+  template pH(): int = self.padding.height
+  template pW(): int = self.padding.width
+  template sH(): int = self.stride.height
+  template sW(): int = self.stride.width
+
+  template iH(): int = self.in_shape[1]
+  template iW(): int = self.in_shape[2]
+  template dH(): int = 1 # dilation # TODO
+  template dW(): int = 1 # dilation
+
+  [
+    self.weight.value.shape[0],                    # C
+    1 + (iH + 2*pH - (((kH-1) * dH) + 1)) div sH,  # H
+    1 + (iW + 2*pW - (((kW-1) * dW) + 1)) div sW,  # W
+  ].toMetadata
+
+proc in_shape*[T](self: Conv2DLayer2[T]): Metadata =
+  self.in_shape.toMetadata

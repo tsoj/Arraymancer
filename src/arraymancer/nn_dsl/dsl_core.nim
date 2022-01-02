@@ -140,6 +140,68 @@ proc genForwardProc(self: Neuromancer, model_name: string, forward: NimNode) =
     )
   )
 
+
+proc splitSections2(config: NimNode): tuple[layers, forward: NimNode] =
+  template unknown =
+    error:
+      lineInfo(section) &
+        ": unknown neural network configuration section \"" &
+        $section[0] & "\""
+
+  for section in config:
+    if section.kind == nnkCall:
+      if eqIdent(section[0], "layers"):
+        result.layers = section[1]
+      else:
+        unknown()
+    elif section.kind == nnkCommand:
+      if eqIdent(section[0], "forward"):
+        # For forward we copy everything.
+        # We have to deal with forward with multiple inputs like "forward x, y, z:"
+        # and we will do that later.
+        result.forward = section
+      else:
+        unknown()
+    else:
+        unknown()
+
+type
+  LayerInfo = object
+    name: NimNode
+    typeName: NimNode
+    arguments: seq[NimNode]
+
+func createLayerInfo(layers: NimNode): seq[LayerInfo] =
+  discard
+  # debugEcho ">KKSKADOSOIADHSID"
+  # debugEcho treeRepr layers
+  # debugEcho ">-----------------<"
+  for layer in layers:
+
+    doAssert layer.kind == nnkCall
+    doAssert layer.len == 2
+    doAssert layer[0].kind == nnkIdent
+    doAssert layer[1].kind == nnkStmtList
+    doAssert layer[1].len == 1
+    doAssert layer[1][0].kind == nnkCall
+    doAssert layer[1][0].len >= 1
+    doAssert layer[1][0][0].kind == nnkIdent
+    result.add LayerInfo(
+      name: layer[0],
+      typeName: layer[1][0][0]
+    )
+    if layer[1][0].len >= 2:
+      result[^1].arguments = layer[1][0][1..^1]
+  #   debugEcho treeRepr result[^1].name
+  #   debugEcho treeRepr result[^1].typeName
+  #   for arg in result[^1].arguments:
+  #     debugEcho treeRepr arg
+  # debugEcho "<KKSKADOSOIADHSID"
+
+func createModelType(layerInfos: seq[LayerInfo]): NimNode =
+  result = newNimNode(nnkStmtList)
+  
+
 macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
   ## Declare a neural network.
   ##
@@ -158,11 +220,48 @@ macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
   ##           forward x:
   ##             x.cv1.relu.mp1.cv2.relu.mp2.fl.hidden.relu.classifier
 
+  # example should be expanded to:
+  # type
+  #   DemoNet = object
+  #     x: Input
+  #     cv1: Conv2DLayer
+  #     mp1: MaxPool2D
+  #     cv2: Conv2DLayer
+  #     mp2: MaxPool2D
+  #     fl: Flatten
+  #     hidden: LinearLayer
+  #     classifier: LinearLayer
+  
+  # proc init(ctx: Context[Tensor[float32]], model_type: typedesc[DemoNet]): DemoNet =
+
+  #   result.x = ctx.init(Input2, [1, 28, 28])
+  #   result.cv1 = ctx.init(Conv2DLayer2, self.x.out_shape, 20, 5, 5)
+  #   result.mp1 = ctx.init(MaxPool2DLayer2, self.cv1.out_shape, (2,2), (0,0), (2,2))
+  #   result.cv2 = ctx.init(Conv2DLayer2, self.mp1.out_shape, 50, 5, 5)
+  #   result.mp2 = ctx.init(MaxPool2DLayer2, self.cv2.out_shape, (2,2), (0,0), (2,2))
+  #   result.fl = ctx.init(Flatten2, self.mp2.out_shape)
+  #   result.hidden = ctx.init(LinearLayer2, self.fl.out_shape, 500)
+  #   result.classifier = ctx.init(LinearLayer2, 500, 10)
+    
+  # # TODO: make Tensor[float32] as TT parameter configurable
+  # proc forward(self: DemoNet, x: Variable[Tensor[float32]]): Variable[Tensor[float32]] =
+
+  # TODO: add in_shape, out_shape functions
+
   # TODO better doc
 
   # 0. - Separate the configuration into layers and forward part
   #    - get the subtype of the model (Tensor[float32], CudaTensor[float64], ...)
-  let sections = config.splitSections()
+  let sections = config.splitSections2()
+
+
+  # 1. create layer info
+  let layerInfo = sections.layers.createLayerInfo()
+
+  # 2. create model type
+
+
+  #[-----------------------------------------------------]#
 
   # 1. Initialize the VM to analyse the neural network Graph.
   #    - Get the input shapes
@@ -170,7 +269,7 @@ macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
   let vm = new Neuromancer
   vm.context = ctx
   vm.subtype = getAST(ctxSubtype(ctx))
-  vm.topoTable = initTable[NimNode, LayerTopology]()
+  vm.topoTable = initTable[NimNode, LayerTopology]()#TODO: maybe don't need this anymore
   vm.topoTable.topoFromLayers(sections.layers)
 
   # 2. Generate the model fields, initialization and template synctactic sugar
@@ -187,3 +286,27 @@ macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
   result.add vm.type_section
   result.add vm.init_proc
   result.add vm.forward_proc
+
+  echo toStrLit(result)
+
+proc forward() =
+  template hidden(x: Variable): Variable =
+    x.linear(self.hidden.weight, self.hidden.bias)
+
+  template fl(x: Variable): Variable =
+    x.flatten
+
+  template classifier(x: Variable): Variable =
+    x.linear(self.classifier.weight, self.classifier.bias)
+
+  template cv1(x: Variable): Variable =
+    x.conv2d(self.cv1.weight, self.cv1.bias)
+
+  template mp1(x: Variable): Variable =
+    x.maxpool2D((2, 2), (0, 0), (2, 2))
+
+  template mp2(x: Variable): Variable =
+    x.maxpool2D((2, 2), (0, 0), (2, 2))
+
+  template cv2(x: Variable): Variable =
+    x.conv2d(self.cv2.weight, self.cv2.bias)
