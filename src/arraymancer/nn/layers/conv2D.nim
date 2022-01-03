@@ -161,7 +161,7 @@ proc init*[T](
     requires_grad = true
   )
 
-  result.cv1.bias = ctx.variable(
+  result.bias = ctx.variable(
     zeros[T]([out_channels, 1, 1]),
     requires_grad = true
   )
