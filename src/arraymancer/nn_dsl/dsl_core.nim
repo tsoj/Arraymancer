@@ -220,6 +220,62 @@ func createModelType(layerInfos: seq[LayerInfo], modelName: NimNode): NimNode =
     )
   )
   
+func createInitProc(layerInfos: seq[LayerInfo], modelName, ctxSubtype: NimNode): NimNode =
+  doAssert modelName.kind == nnkIdent
+  doAssert ctxSubtype.kind == nnkBracketExpr
+
+  var body = newNimNode(nnkStmtList)
+  for layerInfo in layerInfos:
+    body.add(
+      newNimNode(nnkTemplateDef).add(
+        layerInfo.name,
+        newEmptyNode(),
+        newEmptyNode(),
+        newNimNode(nnkFormalParams).add ident"auto",
+        newEmptyNode(),
+        newEmptyNode(),
+        newStmtList(
+          newDotExpr(
+            ident"result",
+            layerInfo.name
+          )
+        )
+      )
+    )
+  for layerInfo in layerInfos:
+    body.add(
+      newAssignment(
+        layerInfo.name,
+        newCall(
+          ident"init",
+          ident"ctx",
+          layerInfo.typeName
+        ).add(layerInfo.arguments)
+      )
+    )
+    
+  result = newProc(
+    name = ident"init",
+    params = @[
+      modelName,
+      newIdentDefs(
+        ident"ctx",
+        newNimNode(nnkBracketExpr).add(
+          ident"Context",
+          ctxSubtype
+        )
+      ),
+      newIdentDefs(
+        ident"model_type",
+        newNimNode(nnkBracketExpr).add(
+          ident"typedesc",
+          modelName
+        )
+      )
+    ],
+    body = body
+  )
+
 
 macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
   ## Declare a neural network.
@@ -281,6 +337,8 @@ macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
   let modelType = createModelType(layerInfos, model_name)
 
   # 3. create init proc
+  let ctxSubtype = getAST(ctxSubtype(ctx))
+  let initProc = createInitProc(layerInfos, model_name, ctxSubtype)
 
   #[-----------------------------------------------------]#
 
@@ -289,7 +347,9 @@ macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
   #    - Get the layers
   let vm = new Neuromancer
   vm.context = ctx
-  vm.subtype = getAST(ctxSubtype(ctx))
+  vm.subtype = ctxSubtype
+  debugEcho "!!!!!!"
+  debugEcho treeRepr ctxSubtype
   vm.topoTable = initTable[NimNode, LayerTopology]()#TODO: maybe don't need this anymore
   vm.topoTable.topoFromLayers(sections.layers)
 

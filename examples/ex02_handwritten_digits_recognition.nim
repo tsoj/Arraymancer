@@ -74,8 +74,8 @@ dumptree:
   #   hidden: LinearLayer
   #   classifier: LinearLayer
   proc init(ctx: Context[Tensor[float32]], model_type: typedesc[DemoNet]): DemoNet =
-    template x = result.x
-    template cv1 = result.cv1
+    template x(): auto = result.x
+    template cv1(): auto = result.cv1
     template mp1 = result.mp1
     template cv2 = result.cv2
     template mp2 = result.mp2
@@ -83,8 +83,8 @@ dumptree:
     template hidden = result.hidden
     template classifier = result.classifier
 
-    x = ctx.init(Input2, [1, 28, 28])
-    cv1 = ctx.init(Conv2DLayer2, x.out_shape, 20, 5, 5)
+    x = init(ctx, Input2, [1, 28, 28])
+    cv1 = init(ctx, Conv2DLayer2, x.out_shape, 20, 5, 5)
     mp1 = ctx.init(MaxPool2DLayer2, cv1.out_shape, (2,2), (0,0), (2,2))
     cv2 = ctx.init(Conv2DLayer2, mp1.out_shape, 50, 5, 5)
     mp2 = ctx.init(MaxPool2DLayer2, cv2.out_shape, (2,2), (0,0), (2,2))
