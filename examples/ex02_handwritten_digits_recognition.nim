@@ -1,6 +1,9 @@
 import ../src/arraymancer, random
 import macros
 import ../src/arraymancer/nn/layers/conv2D
+import ../src/arraymancer/nn/layers/maxpool2D
+import ../src/arraymancer/nn/layers/flatten
+import ../src/arraymancer/nn/layers/linear
 
 # This is an early minimum viable example of handwritten digits recognition.
 # It uses convolutional neural networks to achieve high accuracy.
@@ -34,21 +37,19 @@ let
   X_test = ctx.variable x_test.unsqueeze(1)
   y_test = mnist.test_labels.astype(int)
 
-let i = ctx.init(Conv2DLayer2, [1, 28, 28], 20, (5, 5))
-
 # Configuration of the neural network
 network ctx, DemoNet:
   layers:
-    cv1:        Conv2DLayer2[float32]([1, 28, 28], 20, (5, 5))
-    # mp1:        MaxPool2D(cv1.out_shape, (2,2), (0,0), (2,2))
-    # cv2:        Conv2D(mp1.out_shape, 50, 5, 5)
-    # mp2:        MaxPool2D(cv2.out_shape, (2,2), (0,0), (2,2))
-    # fl:         Flatten(mp2.out_shape)
-    # hidden:     Linear(fl.out_shape, 500)
-    # hidden2:    Linear(hidden.out_shape, 200)
-    # classifier: Linear(hidden2.out_shape, 10)
+    cv1:        Conv2DLayer2(@[1, 28, 28], 20, (5, 5))
+    mp1:        MaxPool2DLayer2(cv1.out_shape, (2,2), (0,0), (2,2))
+    cv2:        Conv2DLayer2(mp1.out_shape, 50, (5, 5))
+    mp2:        MaxPool2DLayer2(cv2.out_shape, (2,2), (0,0), (2,2))
+    fl:         Flatten2(mp2.out_shape)
+    hidden:     LinearLayer2(fl.out_shape[0], 500)
+    hidden2:    LinearLayer2(hidden.out_shape[0], 200)
+    classifier: LinearLayer2(hidden2.out_shape[0], 10)
   forward x:
-    x.cv1.relu#.mp1.cv2.relu.mp2.fl.hidden.relu.hidden2.relu.classifier
+    x.cv1.relu.mp1.cv2.relu.mp2.fl.hidden.relu.hidden2.relu.classifier
 
 #dumptree:
   # network ctx, DemoNet:

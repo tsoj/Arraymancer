@@ -129,18 +129,21 @@ proc init*[T](
   ctx: Context[Tensor[T]],
   layer_type: typedesc[LinearLayer2[T]],
   num_input, num_output: int
-): LinearLayer2[TimeEffect] =
+): LinearLayer2[T] =
   ## Initializes a linear layer with `num_input` input features and `num_output` output features.
   ## Using Kaiming He initialisation for weights to provide decent performance in most cases.
   ## Biases are usually set to zero.
+  
   result.weight = ctx.variable(kaiming_normal([num_output, num_input], T), requires_grad = true)
-  result.bias = ctx.variable(zeros[T]([num_output, num_input]), requires_grad = true)
+  result.bias = ctx.variable(zeros[T]([1, num_output]), requires_grad = true)
 
 proc forward*[T](self: LinearLayer2[T], input: Variable[Tensor[T]]): Variable[Tensor[T]] =
+  # echo self.weight.value.shape
+  # echo self.bias.value.shape
+  # echo input.value.shape
   input.linear(weight = self.weight, bias = self.bias)
 
-proc out_shape*[T](self: LinearLayer2[T]): Metadata =
-  self.weight.shape[0]
-
-proc in_shape*[T](self: LinearLayer2[T]): Metadata =
-  self.weight.shape[1]
+proc out_shape*[T](self: LinearLayer2[T]): seq[int] =
+  @(self.weight.value.shape)
+proc in_shape*[T](self: LinearLayer2[T]): seq[int] =
+  @(self.weight.value.shape)

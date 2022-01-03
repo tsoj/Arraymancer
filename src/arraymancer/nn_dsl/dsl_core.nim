@@ -64,14 +64,21 @@ func createLayerInfo(layers: NimNode): seq[LayerInfo] =
   #     debugEcho treeRepr arg
   # debugEcho "<KKSKADOSOIADHSID"
 
-func createModelType(layerInfos: seq[LayerInfo], modelName: NimNode): NimNode =
+func createModelType(layerInfos: seq[LayerInfo], modelName: NimNode, ctxSubtype: NimNode): NimNode =
   var recList = newNimNode(nnkRecList)
   for layerInfo in layerInfos:
     doAssert layerInfo.name.kind == nnkIdent
     #doAssert layerInfo.typeName.kind == nnkIdent
-    recList.add newIdentDefs(layerInfo.name, layerInfo.typeName)
+    recList.add newIdentDefs(
+      layerInfo.name,
+      newNimNode(nnkBracketExpr).add(
+        layerInfo.typeName,
+        ctxSubtype[1]
+      )
+    )
   
   doAssert modelName.kind == nnkIdent
+  doAssert ctxSubtype.kind == nnkBracketExpr
   result = newNimNode(nnkTypeSection).add(
     newNimNode(nnkTypeDef).add(
       modelName,
@@ -113,7 +120,10 @@ func createInitProc(layerInfos: seq[LayerInfo], modelName, ctxSubtype: NimNode):
         newCall(
           ident"init",
           ident"ctx",
-          layerInfo.typeName
+          newNimNode(nnkBracketExpr).add(
+            layerInfo.typeName,
+            ctxSubtype[1]
+          )
         ).add(layerInfo.arguments)
       )
     )
@@ -183,7 +193,7 @@ func createForwardProc(layerInfos: seq[LayerInfo], forward, modelName, ctxSubtyp
   body.add forwardCall
 
   let inOutType = newNimNode(nnkBracketExpr).add(
-    ident"auto",
+    ident"Variable",
     ctxSubtype
   )
 
@@ -232,10 +242,10 @@ macro network*(ctx: Context, model_name: untyped, config: untyped): untyped =
   let layerInfos = sections.layers.createLayerInfo()
 
   # 2. create model type
-  let modelType = createModelType(layerInfos, model_name)
+  let ctxSubtype = getAST(ctxSubtype(ctx))
+  let modelType = createModelType(layerInfos, model_name, ctxSubtype)
 
   # 3. create init proc
-  let ctxSubtype = getAST(ctxSubtype(ctx))
   let initProc = createInitProc(layerInfos, model_name, ctxSubtype)
 
   # 4. create forward proc

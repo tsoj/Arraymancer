@@ -107,8 +107,8 @@ proc embedding*[TT; Idx: byte or char or SomeInteger](
 # ############################################################
 
 type # TODO: ask if it makes sense to generalize Tensor[T] to AnyTensor[T], or TT
-  EmbeddedLayer2*[TT] = object
-    weight*: Variable[TT]
+  EmbeddedLayer2*[T] = object
+    weight*: Variable[Tensor[T]]
 
 proc init*[T](
   ctx: Context[Tensor[T]],

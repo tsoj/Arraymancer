@@ -139,12 +139,12 @@ type # TODO: ask if it makes sense to generalize Tensor[T] to AnyTensor[T], or T
     bias*: Variable[Tensor[T]]
     padding: Size2D
     stride: Size2D
-    in_shape: array[3, int]
+    in_shape: seq[int]
 
 proc init*[T](
   ctx: Context[Tensor[T]],
   layer_type: typedesc[Conv2DLayer2[T]],
-  in_shape: array[3, int],
+  in_shape: seq[int],
   out_channels: int,
   kernel_size: Size2D,
   padding: Size2D = (0,0),
@@ -153,6 +153,7 @@ proc init*[T](
 
   result.padding = padding
   result.stride = stride
+  assert in_shape.len == 3
   result.in_shape = in_shape
 
   let in_channels = in_shape[0]
@@ -167,7 +168,7 @@ proc init*[T](
   )
 
 proc forward*[T](self: Conv2DLayer2[T], input: Variable[Tensor[T]]): Variable[Tensor[T]] =
-  assert input.value.shape == self.in_shape
+  assert input.value.shape[1..3] == self.in_shape
   input.conv2d(
     weight = self.weight,
     bias = self.bias,
@@ -175,8 +176,8 @@ proc forward*[T](self: Conv2DLayer2[T], input: Variable[Tensor[T]]): Variable[Te
     stride = self.stride
   )
 
-proc out_shape*[T](self: Conv2DLayer2[T]): Metadata =
-  assert self.weight.value.shape.len == 3
+proc out_shape*[T](self: Conv2DLayer2[T]): seq[int] =
+  assert self.weight.value.shape.len == 4
   template kH(): int = self.weight.value.shape[2]
   template kW(): int = self.weight.value.shape[3]
   template pH(): int = self.padding.height
@@ -189,11 +190,11 @@ proc out_shape*[T](self: Conv2DLayer2[T]): Metadata =
   template dH(): int = 1 # dilation # TODO
   template dW(): int = 1 # dilation
 
-  [
+  @[
     self.weight.value.shape[0],                    # C
     1 + (iH + 2*pH - (((kH-1) * dH) + 1)) div sH,  # H
     1 + (iW + 2*pW - (((kW-1) * dW) + 1)) div sW,  # W
-  ].toMetadata
+  ]
 
-proc in_shape*[T](self: Conv2DLayer2[T]): Metadata =
-  self.in_shape.toMetadata
+proc in_shape*[T](self: Conv2DLayer2[T]): seq[int] =
+  self.in_shape
